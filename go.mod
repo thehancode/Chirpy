@@ -9,7 +9,10 @@ require (
 	github.com/andybalholm/cascadia v1.2.0 // indirect
 	github.com/asciimoo/wuzz v0.5.0 // indirect
 	github.com/fatih/color v1.9.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/jroimartin/gocui v0.4.0 // indirect
+	github.com/lib/pq v1.10.9 // indirect
 	github.com/mattn/go-colorable v0.1.6 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect

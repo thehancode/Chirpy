@@ -1,23 +1,49 @@
-package main
+package handlers
 
 import (
+	"Chirpy/internal/database"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type ApiConfig struct {
 	fileserverHits int
+	db             *database.Queries
+	platform       string
 }
 
-func (cfg *ApiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
+func NewApiConfig() *ApiConfig {
+	err := godotenv.Load()
+	if err != nil {
+		return nil
+	}
+	dbURL := os.Getenv("DB_URL")
+	platform := os.Getenv("PLATFORM")
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		return nil
+	}
+	dbQueries := database.New(db)
+
+	return &ApiConfig{
+		fileserverHits: 0,
+		db:             dbQueries,
+		platform:       platform,
+	}
+}
+
+func (cfg *ApiConfig) MiddlewareMetricsInc(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg.fileserverHits++
 		next.ServeHTTP(w, r)
 	})
 }
 
-func (cfg *ApiConfig) resetHandler(w http.ResponseWriter, r *http.Request) {
+func (cfg *ApiConfig) ResetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 
@@ -26,7 +52,7 @@ func (cfg *ApiConfig) resetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(hits))
 }
 
-func (cfg *ApiConfig) metricsHandler(w http.ResponseWriter, r *http.Request) {
+func (cfg *ApiConfig) MetricsHandler(w http.ResponseWriter, r *http.Request) {
 	templateContent, err := os.ReadFile("metrics.html")
 	if err != nil {
 		http.Error(w, "Error reading template file", http.StatusInternalServerError)
