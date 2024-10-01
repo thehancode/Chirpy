@@ -3,10 +3,13 @@ package handlers
 import (
 	"Chirpy/handlers/models"
 	"Chirpy/internal/database"
+	"database/sql"
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/gorilla/mux"
 )
 
 func HealthzHandler(w http.ResponseWriter, r *http.Request) {
@@ -27,6 +30,21 @@ func (cfg *ApiConfig) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	userResponse := models.CreateUserResponse{ID: user.ID.String(), CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt, Email: user.Email}
 	respondWithJSON(w, 201, userResponse)
+}
+
+func (cfg *ApiConfig) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
+	var userList []database.User
+	userList, err := cfg.db.GetAllUsers(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Something went wrong inserting user "+err.Error())
+		return
+	}
+	userResponses := make([]models.CreateUserResponse, len(userList))
+
+	for i, user := range userList {
+		userResponses[i] = models.CreateUserResponse{ID: user.ID.String(), CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt, Email: user.Email}
+	}
+	respondWithJSON(w, 200, userResponses)
 }
 
 func (cfg *ApiConfig) PostChirpHandler(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +77,56 @@ func (cfg *ApiConfig) PostChirpHandler(w http.ResponseWriter, r *http.Request) {
 		UserId:    chirp.UserID.String(),
 	}
 	respondWithJSON(w, 201, chirpResponse)
+}
+
+func (cfg *ApiConfig) GetChirpsHandler(w http.ResponseWriter, r *http.Request) {
+	var chirpList []database.Chirp
+	chirpList, err := cfg.db.GetAllChirps(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Something went wrong inserting chirp "+err.Error())
+		return
+	}
+	chirpResponses := make([]models.CreateChirpResponse, len(chirpList))
+
+	for i, chirp := range chirpList {
+		chirpResponses[i] = models.CreateChirpResponse{
+			ID:        chirp.ID.String(),
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			Body:      chirp.Body,
+			UserId:    chirp.UserID.String(),
+		}
+	}
+	respondWithJSON(w, 200, chirpResponses)
+}
+
+func (cfg *ApiConfig) GetChirpHandler(w http.ResponseWriter, r *http.Request) {
+	var chirp database.Chirp
+	vars := mux.Vars(r)
+	id := vars["id"]
+	chirpId, err := uuid.Parse(id)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid UUID: id cannot be parsed as uuid")
+		return
+	}
+	chirp, err = cfg.db.GetChirp(r.Context(), chirpId)
+	if err == sql.ErrNoRows {
+		respondWithError(w, http.StatusNotFound, "Chirp not found")
+		return
+	}
+	if err != nil {
+		log.Printf("Error retrieving chirp with ID %s: %v", chirpId, err)
+		respondWithError(w, http.StatusBadRequest, "Something went wrong while inserting chirp "+err.Error())
+		return
+	}
+	chirpResponse := models.CreateChirpResponse{
+		ID:        chirp.ID.String(),
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body:      chirp.Body,
+		UserId:    chirp.UserID.String(),
+	}
+	respondWithJSON(w, 200, chirpResponse)
 }
 
 func (cfg *ApiConfig) DeleteUsersHandler(w http.ResponseWriter, r *http.Request) {

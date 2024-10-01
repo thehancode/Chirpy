@@ -9,7 +9,9 @@ require (
 	github.com/andybalholm/cascadia v1.2.0 // indirect
 	github.com/asciimoo/wuzz v0.5.0 // indirect
 	github.com/fatih/color v1.9.0 // indirect
+	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/jroimartin/gocui v0.4.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
@@ -24,5 +26,5 @@ require (
 	github.com/tidwall/pretty v1.0.1 // indirect
 	github.com/x86kernel/htmlcolor v0.0.0-20190529101448-c589f58466d0 // indirect
 	golang.org/x/net v0.0.0-20200602114024-627f9648deb9 // indirect
-	golang.org/x/sys v0.0.0-20200602225109-6fdc65e7d980 // indirect
+	golang.org/x/sys v0.25.0 // indirect
 )
