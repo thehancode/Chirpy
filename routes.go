@@ -19,6 +19,7 @@ func NewRouter(apiCfg *handlers.ApiConfig) http.Handler {
 	// API routes
 	router.HandleFunc("/api/healthz", handlers.HealthzHandler).Methods("GET")
 	router.HandleFunc("/admin/metrics", apiCfg.MetricsHandler).Methods("GET")
+	router.HandleFunc("/api/login", apiCfg.PostLoginHandler).Methods("POST")
 	router.HandleFunc("/api/users", apiCfg.PostUserHandler).Methods("POST")
 	router.HandleFunc("/api/users", apiCfg.GetUsersHandler).Methods("GET")
 	router.HandleFunc("/admin/reset", apiCfg.DeleteUsersHandler).Methods("POST")

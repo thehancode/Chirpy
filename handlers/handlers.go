@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"Chirpy/handlers/models"
+	"Chirpy/internal/auth"
 	"Chirpy/internal/database"
 	"database/sql"
 	"encoding/json"
@@ -20,12 +21,18 @@ func (cfg *ApiConfig) PostUserHandler(w http.ResponseWriter, r *http.Request) {
 	var userBody models.UserPostRequest
 	err := json.NewDecoder(r.Body).Decode(&userBody)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Something went wrong")
+		respondWithError(w, http.StatusBadRequest, "Something went wrong decoding")
 		return
 	}
-	user, err := cfg.db.CreateUser(r.Context(), userBody.Email)
+	hashedPasswordRequest, err := auth.HashPassword(userBody.Password)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Something went wrong")
+		respondWithError(w, http.StatusBadRequest, "Cannot hash the password ")
+		return
+	}
+	user, err := cfg.db.CreateUser(r.Context(), database.CreateUserParams{Email: userBody.Email, HashedPassword: hashedPasswordRequest})
+	if err != nil {
+		log.Printf("Error creating user: %v", err) // Log the SQL error
+		respondWithError(w, http.StatusBadRequest, "Something went wrong creating")
 		return
 	}
 	userResponse := models.CreateUserResponse{ID: user.ID.String(), CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt, Email: user.Email}
@@ -77,6 +84,35 @@ func (cfg *ApiConfig) PostChirpHandler(w http.ResponseWriter, r *http.Request) {
 		UserId:    chirp.UserID.String(),
 	}
 	respondWithJSON(w, 201, chirpResponse)
+}
+
+func (cfg *ApiConfig) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
+	var loginReq models.LoginPostRequest
+	err := json.NewDecoder(r.Body).Decode(&loginReq)
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	user, err := cfg.db.GetUserByEmail(r.Context(), loginReq.Email)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
+		return
+	}
+
+	err = auth.CheckPasswordHash(loginReq.Password, user.HashedPassword)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
+		return
+	}
+
+	userResponse := models.CreateUserResponse{
+		ID:        user.ID.String(),
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email:     user.Email,
+	}
+	respondWithJSON(w, http.StatusOK, userResponse)
 }
 
 func (cfg *ApiConfig) GetChirpsHandler(w http.ResponseWriter, r *http.Request) {

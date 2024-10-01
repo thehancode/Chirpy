@@ -29,7 +29,8 @@ def user_id(auth_headers, base_url):
     # Create a new user
     create_url = f"{base_url}/api/users"
     user_data = {
-        "email": "lluser@4example.com"
+        "email": "lluser@4example.com",
+        "password": "04234"
     }
     create_response = requests.post(create_url, json=user_data, headers=auth_headers)
     assert create_response.status_code == 201
@@ -55,3 +56,24 @@ def user_id(auth_headers, base_url):
     #delete_response = requests.delete(delete_url, headers=auth_headers)
     #assert delete_response.status_code == 204
 
+@pytest.fixture
+def create_test_user(base_url):
+    """Fixture to create a test user for login tests."""
+    url = f"{base_url}/api/users"
+    user_data = {
+        "email": "lanes@example.com",
+        "password": "04234"
+    }
+    response = requests.post(url, json=user_data)
+    print(response.json())
+    if response.status_code == 201:
+        user = response.json()
+        return user
+    elif response.status_code == 409:
+        # User already exists
+        get_url = f"{base_url}/api/users/by_email/{user_data['email']}"
+        get_response = requests.get(get_url)
+        assert get_response.status_code == 200, "Failed to retrieve existing user"
+        return get_response.json()
+    else:
+        pytest.fail(f"Failed to create or retrieve test user, status code {response.status_code}")
