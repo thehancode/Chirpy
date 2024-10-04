@@ -10,11 +10,18 @@ type UserPostRequest struct {
 }
 
 type ChirpPostRequest struct {
-	Body   string `json:"body"`
-	UserId string `json:"user_id"`
+	Body string `json:"body"`
 }
 
 type LoginPostRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email            string `json:"email"`
+	Password         string `json:"password"`
+	ExpiresInSeconds *int64 `json:"expires_in_seconds,omitempty"`
+}
+
+func (l *LoginPostRequest) SetDefaults() {
+	if l.ExpiresInSeconds == nil {
+		defaultExpiration := int64(3600)
+		l.ExpiresInSeconds = &defaultExpiration
+	}
 }

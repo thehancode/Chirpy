@@ -6,8 +6,10 @@ import (
 	"Chirpy/internal/database"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -55,15 +57,15 @@ func (cfg *ApiConfig) GetUsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg *ApiConfig) PostChirpHandler(w http.ResponseWriter, r *http.Request) {
-	var chirpBody models.ChirpPostRequest
-	err := json.NewDecoder(r.Body).Decode(&chirpBody)
+	userID, err := cfg.AuthenticateRequest(r)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Something went wrong with the decoding ")
+		respondWithError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
-	userID, err := uuid.Parse(chirpBody.UserId)
+	var chirpBody models.ChirpPostRequest
+	err = json.NewDecoder(r.Body).Decode(&chirpBody)
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Uuid cannot be parsed")
+		respondWithError(w, http.StatusBadRequest, "Something went wrong with the decoding ")
 		return
 	}
 	if len(chirpBody.Body) > 140 {
@@ -93,6 +95,7 @@ func (cfg *ApiConfig) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusBadRequest, "Invalid request body")
 		return
 	}
+	loginReq.SetDefaults()
 
 	user, err := cfg.db.GetUserByEmail(r.Context(), loginReq.Email)
 	if err != nil {
@@ -106,11 +109,19 @@ func (cfg *ApiConfig) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	token, err := auth.MakeJWT(user.ID, cfg.tokenSecret, time.Duration(*loginReq.ExpiresInSeconds)*time.Second)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to generate token")
+		return
+	}
+
+	// Prepare response
 	userResponse := models.CreateUserResponse{
 		ID:        user.ID.String(),
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email:     user.Email,
+		Token:     token,
 	}
 	respondWithJSON(w, http.StatusOK, userResponse)
 }
@@ -176,4 +187,18 @@ func (cfg *ApiConfig) DeleteUsersHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	respondWithOk(w, 200)
+}
+
+func (cfg *ApiConfig) AuthenticateRequest(r *http.Request) (uuid.UUID, error) {
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("missing or invalid authorization token")
+	}
+
+	userID, err := auth.ValidateJWT(token, cfg.tokenSecret)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid token")
+	}
+
+	return userID, nil
 }

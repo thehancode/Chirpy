@@ -14,6 +14,7 @@ type ApiConfig struct {
 	fileserverHits int
 	db             *database.Queries
 	platform       string
+	tokenSecret    string
 }
 
 func NewApiConfig() *ApiConfig {
@@ -23,6 +24,8 @@ func NewApiConfig() *ApiConfig {
 	}
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
+	secret := os.Getenv("SECTET")
+
 	db, err := sql.Open("postgres", dbURL)
 	if err != nil {
 		return nil
@@ -33,6 +36,7 @@ func NewApiConfig() *ApiConfig {
 		fileserverHits: 0,
 		db:             dbQueries,
 		platform:       platform,
+		tokenSecret:    secret,
 	}
 }
 
