@@ -35,3 +35,9 @@ SET
     hashed_password = COALESCE($3, hashed_password)
 WHERE id = $1
 RETURNING *;
+
+-- name: UpgradeUserToChirpyRed :one
+UPDATE users
+SET is_chirpy_red = true
+WHERE id = $1
+RETURNING *;

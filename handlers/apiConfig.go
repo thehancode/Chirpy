@@ -15,6 +15,7 @@ type ApiConfig struct {
 	db             *database.Queries
 	platform       string
 	tokenSecret    string
+	polkaKey       string
 }
 
 func NewApiConfig() *ApiConfig {
@@ -27,6 +28,7 @@ func NewApiConfig() *ApiConfig {
 	secret := os.Getenv("SECTET")
 
 	db, err := sql.Open("postgres", dbURL)
+	polkaKey := os.Getenv("POLKA_KEY")
 	if err != nil {
 		return nil
 	}
@@ -37,6 +39,7 @@ func NewApiConfig() *ApiConfig {
 		db:             dbQueries,
 		platform:       platform,
 		tokenSecret:    secret,
+		polkaKey:       polkaKey,
 	}
 }
 
