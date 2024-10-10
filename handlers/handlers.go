@@ -88,6 +88,76 @@ func (cfg *ApiConfig) PostChirpHandler(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, 201, chirpResponse)
 }
 
+func (cfg *ApiConfig) PostRefreshHandler(w http.ResponseWriter, r *http.Request) {
+	refreshToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		fmt.Errorf("missing or invalid authorization token")
+		return
+	}
+	refToken, err := cfg.db.GetRefreshToken(r.Context(), refreshToken)
+	if err != nil {
+		log.Printf("Error retrieving refresh token: %v", err)
+		respondWithError(w, http.StatusUnauthorized, "Invalid refresh token")
+		return
+	}
+
+	if time.Now().After(refToken.ExpiresAt) {
+		respondWithError(w, http.StatusUnauthorized, "Refresh token has expired")
+		return
+	}
+
+	if refToken.RevokedAt.Valid {
+		respondWithError(w, http.StatusUnauthorized, "Refresh token has been revoked")
+		return
+	}
+
+	newAccessToken, err := auth.MakeJWT(refToken.UserID, cfg.tokenSecret, time.Hour)
+	if err != nil {
+		log.Printf("Error generating new access token: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "Failed to generate access token")
+		return
+	}
+
+	response := map[string]string{
+		"token": newAccessToken,
+	}
+	respondWithJSON(w, http.StatusOK, response)
+}
+
+func (cfg *ApiConfig) PostRevokeHandler(w http.ResponseWriter, r *http.Request) {
+	refreshToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Missing or invalid authorization token")
+		return
+	}
+
+	refToken, err := cfg.db.GetRefreshToken(r.Context(), refreshToken)
+	if err != nil {
+		log.Printf("Error retrieving refresh token: %v", err)
+		respondWithError(w, http.StatusUnauthorized, "Invalid refresh token")
+		return
+	}
+
+	if time.Now().After(refToken.ExpiresAt) {
+		respondWithError(w, http.StatusUnauthorized, "Refresh token has expired")
+		return
+	}
+
+	if refToken.RevokedAt.Valid {
+		respondWithError(w, http.StatusUnauthorized, "Refresh token has already been revoked")
+		return
+	}
+
+	err = cfg.db.RevokeRefreshToken(r.Context(), refreshToken)
+	if err != nil {
+		log.Printf("Error revoking refresh token: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "Failed to revoke refresh token")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (cfg *ApiConfig) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 	var loginReq models.LoginPostRequest
 	err := json.NewDecoder(r.Body).Decode(&loginReq)
@@ -114,14 +184,21 @@ func (cfg *ApiConfig) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusInternalServerError, "Failed to generate token")
 		return
 	}
+	refreshToken, err := auth.MakeRefreshToken()
+	_, err = cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{Token: refreshToken, UserID: user.ID})
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to generate token")
+		return
+	}
 
 	// Prepare response
 	userResponse := models.CreateUserResponse{
-		ID:        user.ID.String(),
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email:     user.Email,
-		Token:     token,
+		ID:           user.ID.String(),
+		CreatedAt:    user.CreatedAt,
+		UpdatedAt:    user.UpdatedAt,
+		Email:        user.Email,
+		Token:        token,
+		RefreshToken: refreshToken,
 	}
 	respondWithJSON(w, http.StatusOK, userResponse)
 }
