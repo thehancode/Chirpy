@@ -24,6 +24,7 @@ func NewRouter(apiCfg *handlers.ApiConfig) http.Handler {
 	router.HandleFunc("/api/revoke", apiCfg.PostRevokeHandler).Methods("POST")
 	router.HandleFunc("/api/users", apiCfg.PostUserHandler).Methods("POST")
 	router.HandleFunc("/api/users", apiCfg.GetUsersHandler).Methods("GET")
+	router.HandleFunc("/api/users", apiCfg.PutUserHandler).Methods("PUT")
 	router.HandleFunc("/admin/reset", apiCfg.DeleteUsersHandler).Methods("POST")
 	router.HandleFunc("/api/chirps", apiCfg.PostChirpHandler).Methods("POST")
 	router.HandleFunc("/api/chirps", apiCfg.GetChirpsHandler).Methods("GET")

@@ -9,6 +9,11 @@ type UserPostRequest struct {
 	Password string `json:"password"`
 }
 
+type UserPutRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
 type ChirpPostRequest struct {
 	Body string `json:"body"`
 }
