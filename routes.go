@@ -29,6 +29,7 @@ func NewRouter(apiCfg *handlers.ApiConfig) http.Handler {
 	router.HandleFunc("/api/chirps", apiCfg.PostChirpHandler).Methods("POST")
 	router.HandleFunc("/api/chirps", apiCfg.GetChirpsHandler).Methods("GET")
 	router.HandleFunc("/api/chirps/{id}", apiCfg.GetChirpHandler).Methods("GET")
+	router.HandleFunc("/api/chirps/{id}", apiCfg.DeleteChirpHandler).Methods("DELETE")
 
 	return router
 }
