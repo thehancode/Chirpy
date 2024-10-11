@@ -9,10 +9,6 @@ VALUES (
 )
 RETURNING *;
 
--- name: GetAllChirps :many
-SELECT *
-FROM chirps
-ORDER BY created_at ASC;
 
 -- name: GetChirp :one
 SELECT *
@@ -23,3 +19,25 @@ WHERE id = $1;
 DELETE FROM chirps
 WHERE id = $1
 RETURNING id;
+
+-- name: GetAllChirpsAsc :many
+SELECT id, created_at, updated_at, body, user_id 
+FROM chirps 
+ORDER BY created_at ASC;
+
+-- name: GetAllChirpsDesc :many
+SELECT id, created_at, updated_at, body, user_id 
+FROM chirps 
+ORDER BY created_at DESC;
+
+-- name: GetChirpsByAuthorIDAsc :many
+SELECT id, created_at, updated_at, body, user_id 
+FROM chirps 
+WHERE user_id = $1 
+ORDER BY created_at ASC;
+
+-- name: GetChirpsByAuthorIDDesc :many
+SELECT id, created_at, updated_at, body, user_id 
+FROM chirps 
+WHERE user_id = $1 
+ORDER BY created_at DESC;
